@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анимированное Сердце</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            overflow: hidden;
+        }
+        canvas {
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="heartCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById('heartCanvas');
+        var ctx = canvas.getContext('2d');
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        var heartPointsCount = 400;
+        var traceCount = 10;
+        var targetPoints = [];
+
+        for (var i = 0; i < heartPointsCount; i++) {
+            var angle = i * (Math.PI * 2 / heartPointsCount);
+            var x = 16 * Math.sin(angle) * Math.sin(angle) * Math.sin(angle);
+            var y = 13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle);
+            targetPoints.push([x * 20 + width / 2, height / 2 - y * 20]);
+        }
+
+        var e = [];
+        for (var i = 0; i < heartPointsCount; i++) {
+            var x = Math.random() * width;
+            var y = Math.random() * height;
+            e[i] = {
+                vx: 0,
+                vy: 0,
+                R: 2,
+                speed: Math.random() + 5,
+                q: Math.floor(Math.random() * heartPointsCount),
+                D: (Math.random() < 0.5 ? 1 : -1),
+                force: 0.2 * Math.random() + 0.7,
+                f: "hsla(0," + (40 * Math.random() + 60) + "%," + (60 * Math.random() + 20) + "%,.3)",
+                trace: []
+            };
+            for (var k = 0; k < traceCount; k++) e[i].trace[k] = { x: x, y: y };
+        }
+
+        var config = {
+            traceK: 0.4,
+            timeDelta: 0.01
+        };
+
+        var time = 0;
+        var loop = function () {
+            ctx.fillStyle = "rgba(0,0,0,.1)";
+            ctx.fillRect(0, 0, width, height);
+
+            for (var i = 0; i < e.length; i++) {
+                var u = e[i];
+                var q = targetPoints[u.q];
+                var dx = u.trace[0].x - q[0];
+                var dy = u.trace[0].y - q[1];
+                var length = Math.sqrt(dx * dx + dy * dy);
+                if (10 > length) {
+                    if (Math.random() < 0.95) {
+                        u.q = Math.floor(Math.random() * heartPointsCount);
+                    } else {
+                        if (Math.random() < 0.99) {
+                            u.D *= -1;
+                        }
+                        u.q += u.D;
+                        u.q = (u.q + heartPointsCount) % heartPointsCount;
+                    }
+                }
+                u.vx += -dx / length * u.speed;
+                u.vy += -dy / length * u.speed;
+                u.trace[0].x += u.vx;
+                u.trace[0].y += u.vy;
+                u.vx *= u.force;
+                u.vy *= u.force;
+                for (var k = 0; k < u.trace.length - 1;) {
+                    var T = u.trace[k];
+                    var N = u.trace[++k];
+                    N.x -= config.traceK * (N.x - T.x);
+                    N.y -= config.traceK * (N.y - T.y);
+                }
+                ctx.fillStyle = u.f;
+                for (var k = 0; k < u.trace.length; k++) {
+                    ctx.fillRect(u.trace[k].x, u.trace[k].y, 1, 1);
+                }
+            }
+
+            time += ((Math.sin(time)) < 0 ? 9 : 1) * config.timeDelta;
+            window.requestAnimationFrame(loop, canvas);
+        };
+        loop();
+
+        ctx.fillStyle = "white";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.fillText("поставьте юле 2 по братски", width / 2, height / 2);
+    </script>
+</body>
+</html>
